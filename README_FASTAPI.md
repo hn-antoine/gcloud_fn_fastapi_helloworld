@@ -84,3 +84,6 @@ To avoid incurring charges, delete the deployed function when no longer needed:
 ```bash
 gcloud functions delete helloApi --project <your-project-id>
 ```
+
+https://medium.com/google-cloud/cloud-run-service-with-a-python-module-fastapi-and-uvicorn-24c94090a008
+https://github.com/tosun-si/teams-league-cloudrun-service-fastapi.git
