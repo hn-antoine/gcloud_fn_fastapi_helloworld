@@ -1,47 +1,43 @@
-# # This is a Google Cloud Function that uses FastAPI as the web framework.
-# from fastapi import FastAPI
-# from fastapi.responses import JSONResponse
-# from fastapi.middleware.wsgi import WSGIMiddleware
-# import functions_framework
-# from werkzeug.wrappers import Request as WSGIRequest
+# This is a Google Cloud Function that uses FastAPI as the web framework.
+from fastapi import FastAPI
+from mangum import Mangum
+from flask import Request, jsonify
+import logging
 
-# # FastAPI app
-# app = FastAPI()
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-# @app.get("/")
-# def hello():
-#     return {"message": "Hello from FastAPI on GCF!"}
+# Create a FastAPI app
+app = FastAPI()
 
-# # Wrap with WSGI middleware
-# wrapped_app = WSGIMiddleware(app)
+# Define a simple route
+@app.get("/")
+async def helloApi():
+    return {"message": "Hello, World!"}
 
-# # Cloud Function HTTP entry point
-# @functions_framework.http
-# def helloApi(request: WSGIRequest):
-#     """Entrypoint for Google Cloud Function"""
-#     response_body = []
-#     status_headers = {}
+# Adapter for Google Cloud Functions
+handler = Mangum(app)
 
-#     def start_response(status, headers):
-#         status_headers["status"] = status
-#         status_headers["headers"] = headers
-#         return response_body.append
-
-#     result = wrapped_app(request.environ, start_response)
-#     response_body = b"".join(response_body + list(result))
-#     return (response_body, int(status_headers["status"].split()[0]), status_headers["headers"])
-
-# Run locally using functions-framework or directly with `python main.py`
-
-def hello_world(request):
+def hello_world(request: Request):
     """
     Google Cloud Function entry point.
-    Returns a simple "Hello, World!" message.
+    Converts the incoming request to ASGI and processes it using FastAPI.
     """
-    return "Hello, World!"
+    try:
+        # Log the incoming request for debugging
+        logger.debug("Incoming request: %s", request)
+        
+        # Convert the Google Cloud Function request to an ASGI-compatible request
+        response = handler(request.environ, lambda status, headers: None)
+        return response
+    except Exception as e:
+        # Log and handle errors gracefully
+        logger.error("Error occurred: %s", str(e))
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    print("Running locally on http://localhost:8080")
-    run_simple("0.0.0.0", 8080, wrapped_app)
+    from functions_framework import create_app
+    app = create_app("hello_world")
+    app.run(host="0.0.0.0", port=8080)
 
-    
