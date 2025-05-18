@@ -1,20 +1,22 @@
-from fastapi import FastAPI, Request
-from mangum import Mangum
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from mangum import Mangum  # ⚠️ not needed in this context
+import functions_framework
+from werkzeug.wrappers import Request as WSGIRequest
+from fastapi.middleware.wsgi import WSGIMiddleware
 
-# Create a FastAPI app
+# Define FastAPI app
 app = FastAPI()
 
-# Define a simple route
-@app.get('/')
-async def hello_world():
-    return {"message": "Hello, FastAPI!"}
+@app.get("/")
+def hello():
+    return {"message": "Hello from FastAPI on GCF!"}
 
-# Adapter for Google Cloud Functions
-handler = Mangum(app)
+# Wrap FastAPI app with WSGI middleware
+wrapped_app = WSGIMiddleware(app)
 
-def helloApi(request: Request):
-    """
-    Google Cloud Function entry point.
-    Converts the incoming request to ASGI and processes it using FastAPI.
-    """
-    return handler(request)
+# Google Cloud Function entry point
+@functions_framework.http
+def helloApi(request: WSGIRequest):
+    """Entrypoint for GCF"""
+    return wrapped_app(request.environ, lambda status, headers: (status, headers))
