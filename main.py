@@ -1,25 +1,20 @@
-# This is a Google Cloud Function that uses FastAPI as the web framework.
-from fastapi import FastAPI
-from fastapi.middleware.wsgi import WSGIMiddleware
+from flask import Flask, jsonify, request
 import functions_framework
-from werkzeug.wrappers import Request as WSGIRequest
 
-# Create a FastAPI app
-app = FastAPI()
+# Create a Flask app
+app = Flask(__name__)
 
-# Define a simple route
-@app.get("/")
-async def helloApi():
-    return {"message": "Hello, World!"}
-
-# Wrap the FastAPI app with WSGIMiddleware
-wrapped_app = WSGIMiddleware(app)
+@app.route("/", methods=["GET"])
+def hello_world():
+    """
+    A simple Flask route that returns a Hello, World! message.
+    """
+    return jsonify({"message": "Hello, World!"})
 
 @functions_framework.http
-def hello_world(request: WSGIRequest):
+def hello_world(request):
     """
     Google Cloud Function entry point.
-    Converts the incoming request to WSGI and processes it using FastAPI.
+    Handles HTTP requests and returns a Hello, World! message.
     """
-    return wrapped_app(request.environ, lambda status, headers: None)
-
+    return app(request.environ, lambda status, headers: None)
